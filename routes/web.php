@@ -7,6 +7,7 @@ use App\Http\Controllers\RequestController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\DonationAIController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\VerificationController;
 use App\Http\Controllers\Admin\MonitoringController;
@@ -27,6 +28,9 @@ require __DIR__ . '/auth.php';
 Route::middleware(['auth', 'verified', 'approved'])->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // AI Description Generator — must be before resource route to avoid {donation} capture
+    Route::post('/donations/ai-generate', [DonationAIController::class, 'generate'])->name('donations.ai-generate');
 
     Route::resource('donations', DonationController::class)
         ->only(['index', 'store', 'destroy']);

@@ -5,107 +5,127 @@ namespace App\Http\Controllers;
 use App\Models\Donation;
 use App\Models\RequestDonation;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
     public function index()
     {
+        // Scope semua query ke organisasi yang sedang login
+        $orgName = Auth::user()->organization_name ?? Auth::user()->name;
+
         // 1. Setup Waktu (Bulan Ini & Bulan Lalu)
         $now = Carbon::now();
         $currentMonth = $now->month;
-        $currentYear = $now->year;
+        $currentYear  = $now->year;
 
         $lastMonthDate = $now->copy()->subMonth();
-        $lastMonth = $lastMonthDate->month;
-        $lastYear = $lastMonthDate->year;
+        $lastMonth     = $lastMonthDate->month;
+        $lastYear      = $lastMonthDate->year;
 
         // ==========================================
-        // TOTAL DONATIONS
+        // TOTAL DONATIONS (milik organisasi ini)
         // ==========================================
-        $totalDonations = Donation::count(); // Angka utama (All-time)
-        
-        $currentTotal = Donation::whereMonth('created_at', $currentMonth)
+        $totalDonations = Donation::where('organization_name', $orgName)->count();
+
+        $currentTotal = Donation::where('organization_name', $orgName)
+            ->whereMonth('created_at', $currentMonth)
             ->whereYear('created_at', $currentYear)->count();
-        $lastTotal = Donation::whereMonth('created_at', $lastMonth)
+        $lastTotal = Donation::where('organization_name', $orgName)
+            ->whereMonth('created_at', $lastMonth)
             ->whereYear('created_at', $lastYear)->count();
-            
+
         $totalGrowth = $this->calculateGrowth($currentTotal, $lastTotal);
 
         // ==========================================
-        // ACTIVE / PENDING REQUESTS
+        // ACTIVE / PENDING REQUESTS (untuk donasi organisasi ini)
         // ==========================================
-        $pendingRequests = RequestDonation::where('status', 'Pending')->count();
-        
+        $pendingRequests = RequestDonation::where('status', 'Pending')
+            ->whereHas('donation', fn($q) => $q->where('organization_name', $orgName))
+            ->count();
+
         $currentPending = RequestDonation::where('status', 'Pending')
+            ->whereHas('donation', fn($q) => $q->where('organization_name', $orgName))
             ->whereMonth('created_at', $currentMonth)
             ->whereYear('created_at', $currentYear)->count();
         $lastPending = RequestDonation::where('status', 'Pending')
+            ->whereHas('donation', fn($q) => $q->where('organization_name', $orgName))
             ->whereMonth('created_at', $lastMonth)
             ->whereYear('created_at', $lastYear)->count();
-            
+
         $pendingGrowth = $this->calculateGrowth($currentPending, $lastPending);
 
         // ==========================================
         // COMPLETED DONATIONS
         // ==========================================
-        $completedDonations = Donation::where('status', 'Completed')->count();
-        
-        $currentCompleted = Donation::where('status', 'Completed')
+        $completedDonations = Donation::where('organization_name', $orgName)
+            ->where('status', 'Completed')->count();
+
+        $currentCompleted = Donation::where('organization_name', $orgName)
+            ->where('status', 'Completed')
             ->whereMonth('created_at', $currentMonth)
             ->whereYear('created_at', $currentYear)->count();
-        $lastCompleted = Donation::where('status', 'Completed')
+        $lastCompleted = Donation::where('organization_name', $orgName)
+            ->where('status', 'Completed')
             ->whereMonth('created_at', $lastMonth)
             ->whereYear('created_at', $lastYear)->count();
-            
+
         $completedGrowth = $this->calculateGrowth($currentCompleted, $lastCompleted);
 
         // ==========================================
         // AVAILABLE DONATIONS
         // ==========================================
-        $availableDonations = Donation::where('status', 'Available')->count();
-        
-        $currentAvailable = Donation::where('status', 'Available')
+        $availableDonations = Donation::where('organization_name', $orgName)
+            ->where('status', 'Available')->count();
+
+        $currentAvailable = Donation::where('organization_name', $orgName)
+            ->where('status', 'Available')
             ->whereMonth('created_at', $currentMonth)
             ->whereYear('created_at', $currentYear)->count();
-        $lastAvailable = Donation::where('status', 'Available')
+        $lastAvailable = Donation::where('organization_name', $orgName)
+            ->where('status', 'Available')
             ->whereMonth('created_at', $lastMonth)
             ->whereYear('created_at', $lastYear)->count();
-            
+
         $availableGrowth = $this->calculateGrowth($currentAvailable, $lastAvailable);
 
         // ==========================================
         // STATISTICS: Donations by Category
         // ==========================================
-        $donationsByCategory = Donation::selectRaw('category, COUNT(*) as count')
+        $donationsByCategory = Donation::where('organization_name', $orgName)
+            ->selectRaw('category, COUNT(*) as count')
             ->groupBy('category')
             ->pluck('count', 'category');
 
         $categoryLabels = $donationsByCategory->keys();
-        $categoryData = $donationsByCategory->values();
+        $categoryData   = $donationsByCategory->values();
 
         // ==========================================
         // STATISTICS: Donation Trends (Last 6 Months)
         // ==========================================
         $trendLabels = collect();
-        $trendData = collect();
-        
-        // Looping mundur dari 5 bulan lalu sampai bulan ini
+        $trendData   = collect();
+
         for ($i = 5; $i >= 0; $i--) {
             $month = Carbon::now()->subMonths($i);
-            $trendLabels->push($month->format('M Y')); 
-            
-            $count = Donation::whereMonth('created_at', $month->month)
+            $trendLabels->push($month->format('M Y'));
+
+            $count = Donation::where('organization_name', $orgName)
+                ->whereMonth('created_at', $month->month)
                 ->whereYear('created_at', $month->year)
                 ->count();
-                
+
             $trendData->push($count);
         }
 
         // ==========================================
         // RECENT DONATIONS TABLE
         // ==========================================
-        // Menggunakan with('unit') agar relasi unit langsung dimuat (mencegah N+1 Query)
-        $latestDonations = Donation::with('unit')->orderByDesc('id')->take(5)->get();
+        $latestDonations = Donation::with('unit')
+            ->where('organization_name', $orgName)
+            ->orderByDesc('id')
+            ->take(5)
+            ->get();
 
         return view('dashboard', compact(
             'totalDonations', 'totalGrowth',
@@ -113,22 +133,21 @@ class DashboardController extends Controller
             'completedDonations', 'completedGrowth',
             'availableDonations', 'availableGrowth',
             'latestDonations',
-            'categoryLabels', 'categoryData', 
+            'categoryLabels', 'categoryData',
             'trendLabels', 'trendData'
         ));
     }
 
     /**
-     * Fungsi helper untuk menghitung persentase pertumbuhan bulanan
+     * Hitung persentase pertumbuhan bulanan.
+     * Jika bulan lalu = 0 dan bulan ini ada data → anggap naik 100%.
      */
-    private function calculateGrowth($current, $last)
+    private function calculateGrowth($current, $last): float|int
     {
-        // Jika bulan lalu tidak ada data sama sekali
         if ($last == 0) {
-            return $current > 0 ? 100 : 0; // Jika bulan ini ada data, anggap naik 100%
+            return $current > 0 ? 100 : 0;
         }
-        
-        $growth = (($current - $last) / $last) * 100;
-        return round($growth, 1); // Bulatkan 1 angka di belakang koma (misal: 12.5)
+
+        return round((($current - $last) / $last) * 100, 1);
     }
 }
