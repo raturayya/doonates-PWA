@@ -7,8 +7,8 @@
 
     {{-- Header --}}
     <div>
-        <h1 class="text-2xl font-bold text-gray-900">Organization Verification</h1>
-        <p class="text-gray-500 mt-1">Kelola pendaftaran organisasi yang masuk</p>
+        <h1 class="text-2xl font-bold text-gray-900">Account Verification</h1>
+        <p class="text-gray-500 mt-1">Manage pending organization and user registrations</p>
     </div>
 
     {{-- Flash Message --}}
@@ -52,37 +52,46 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        @foreach($pending as $org)
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4">
-                                <p class="font-medium text-gray-900">{{ $org->organization_name }}</p>
-                                <p class="text-xs text-gray-400 mt-0.5">{{ $org->address }}</p>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">{{ $org->organization_type }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-600">{{ $org->email }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-600">{{ $org->phone }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-500">{{ $org->created_at->diffForHumans() }}</td>
-                            <td class="px-6 py-4">
-                                <div class="flex gap-2">
-                                    <form method="POST" action="{{ route('admin.verification.approve', $org) }}">
-                                        @csrf @method('PATCH')
-                                        <button type="submit"
-                                            class="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-lg hover:bg-green-200 transition-colors font-medium">
-                                            ✓ Approve
-                                        </button>
-                                    </form>
-                                    <form method="POST" action="{{ route('admin.verification.reject', $org) }}">
-                                        @csrf @method('PATCH')
-                                        <button type="submit"
-                                            class="text-xs bg-red-100 text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-200 transition-colors font-medium">
-                                            ✗ Reject
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
+                        {{-- REPLACE the @foreach($pending as $org) row block WITH: --}}
+                @foreach($pending as $org)
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4">
+                        <p class="font-medium text-gray-900">
+                            {{ $org->organization_name ?? $org->name }}
+                        </p>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ $org->address ?? '—' }}</p>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600">
+                        @if($org->role === 'user')
+                            <span class="inline-block bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">Individual</span>
+                        @else
+                            {{ $org->organization_type ?? '—' }}
+                        @endif
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{{ $org->email }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{{ $org->phone ?? '—' }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">{{ $org->created_at->diffForHumans() }}</td>
+                    <td class="px-6 py-4">
+                        <div class="flex gap-2">
+                            <form method="POST" action="{{ route('admin.verification.approve', $org) }}">
+                                @csrf @method('PATCH')
+                                <button type="submit"
+                                    class="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-lg hover:bg-green-200 transition-colors font-medium">
+                                    ✓ Approve
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ route('admin.verification.reject', $org) }}">
+                                @csrf @method('PATCH')
+                                <button type="submit"
+                                    class="text-xs bg-red-100 text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-200 transition-colors font-medium">
+                                    ✗ Reject
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                @endforeach
+                </tbody>
                 </table>
             </div>
         @endif
@@ -113,8 +122,14 @@
                     <tbody class="divide-y divide-gray-100">
                         @foreach($approved as $org)
                         <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 font-medium text-gray-900">{{ $org->organization_name }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-600">{{ $org->organization_type }}</td>
+                        <td class="px-6 py-4 font-medium text-gray-900">{{ $org->organization_name ?? $org->name }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-600">
+                            @if($org->role === 'user')
+                                <span class="inline-block bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">Individual</span>
+                            @else
+                                {{ $org->organization_type ?? '—' }}
+                            @endif
+                        </td>
                             <td class="px-6 py-4 text-sm text-gray-600">{{ $org->email }}</td>
                             <td class="px-6 py-4">
                                 <form method="POST" action="{{ route('admin.verification.reject', $org) }}">
@@ -158,8 +173,14 @@
                     <tbody class="divide-y divide-gray-100">
                         @foreach($rejected as $org)
                         <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 font-medium text-gray-900">{{ $org->organization_name }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-600">{{ $org->organization_type }}</td>
+                            <td class="px-6 py-4 font-medium text-gray-900">{{ $org->organization_name ?? $org->name }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">
+                                @if($org->role === 'user')
+                                    <span class="inline-block bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">Individual</span>
+                                @else
+                                    {{ $org->organization_type ?? '—' }}
+                                @endif
+                            </td>
                             <td class="px-6 py-4 text-sm text-gray-600">{{ $org->email }}</td>
                             <td class="px-6 py-4">
                                 <form method="POST" action="{{ route('admin.verification.approve', $org) }}">

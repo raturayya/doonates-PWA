@@ -20,6 +20,7 @@
                     <th class="px-6 py-3 text-left text-xs uppercase tracking-wider text-gray-500">My Request</th>
                     <th class="px-6 py-3 text-left text-xs uppercase tracking-wider text-gray-500">Pickup Time</th>
                     <th class="px-6 py-3 text-left text-xs uppercase tracking-wider text-gray-500">Status</th>
+                    <th class="px-6 py-3 text-left text-xs uppercase tracking-wider text-gray-500">Action</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
@@ -55,10 +56,25 @@
                     <td class="px-6 py-4">
                         <x-badge :status="$req->status" />
                     </td>
+                    <td class="px-6 py-4">
+                        @if($req->status === 'Approved')
+                        <a href="{{ route('user.requests.show', $req->id) }}"
+                           class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors">
+                            📍 View Location
+                        </a>
+                        @elseif($req->status === 'Finished')
+                        <a href="{{ route('user.requests.show', $req->id) }}"
+                           class="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                            View
+                        </a>
+                        @else
+                        <span class="text-gray-400 text-sm">—</span>
+                        @endif
+                    </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                    <td colspan="8" class="px-6 py-12 text-center text-gray-500">
                         No requests yet.
                         <a href="{{ route('user.donations.index') }}" class="text-[#2E7D32] hover:underline ml-1">Browse donations</a>
                     </td>

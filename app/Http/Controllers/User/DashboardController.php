@@ -11,18 +11,21 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $user = Auth::user();
+        $userId = Auth::id();
 
         $availableDonations = Donation::where('status', 'Available')->count();
 
-        $myRequests = RequestDonation::where('organization_name', $user->organization_name)->count();
+        $myRequests = RequestDonation::where('user_id', $userId)->count();
 
-        $approvedRequests = RequestDonation::where('organization_name', $user->organization_name)
-            ->where('status', 'Approved')->count();
+        $approvedRequests = RequestDonation::where('user_id', $userId)
+            ->where('status', 'Approved')
+            ->count();
 
         $recentDonations = Donation::with('unit')
             ->where('status', 'Available')
-            ->latest()->take(6)->get();
+            ->latest()
+            ->take(6)
+            ->get();
 
         return view('user.dashboard', compact(
             'availableDonations', 'myRequests', 'approvedRequests', 'recentDonations'

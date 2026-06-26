@@ -10,12 +10,39 @@ class RequestController extends Controller
 {
     public function index()
     {
-        $user = Auth::user();
+        $userId = Auth::id();
 
         $requests = RequestDonation::with('donation.unit')
-            ->where('organization_name', $user->organization_name ?? $user->name)
-            ->latest()->get();
+            ->where('user_id', $userId)
+            ->latest()
+            ->get();
 
         return view('user.requests.index', compact('requests'));
+    }
+
+    public function show(RequestDonation $requestDonation)
+    {
+        if ($requestDonation->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $requestDonation->load('donation.unit');
+
+        return view('user.requests.show', compact('requestDonation'));
+    }
+
+    public function markPickedUp(RequestDonation $requestDonation)
+    {
+        if ($requestDonation->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        if ($requestDonation->status !== 'Approved') {
+            return back()->with('error', 'Request is not in Approved state');
+        }
+
+        $requestDonation->update(['status' => 'Finished']);
+
+        return back()->with('success', 'Marked as picked up! Thank you.');
     }
 }

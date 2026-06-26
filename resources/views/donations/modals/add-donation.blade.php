@@ -108,6 +108,72 @@
                 ></textarea>
             </div>
 
+            {{-- Pickup Location Map --}}
+            <div
+                x-data="{
+                    lat: null,
+                    lng: null,
+                    map: null,
+                    marker: null,
+                    initMap() {
+                        if (this.map) return;
+                        this.map = L.map('add-donation-map').setView([-6.2088, 106.8456], 12);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '© OpenStreetMap contributors'
+                        }).addTo(this.map);
+                        this.map.on('click', (e) => {
+                            this.lat = e.latlng.lat;
+                            this.lng = e.latlng.lng;
+                            if (this.marker) this.map.removeLayer(this.marker);
+                            this.marker = L.marker([this.lat, this.lng]).addTo(this.map);
+                            document.getElementById('add-lat').value = this.lat;
+                            document.getElementById('add-lng').value = this.lng;
+                        });
+                        setTimeout(() => this.map.invalidateSize(), 150);
+                    }
+                }"
+                x-init="$watch('$el.closest('.fixed').style.display', v => { if (v !== 'none') $nextTick(() => initMap()) })"
+                @donation-modal-opened.window="$nextTick(() => initMap())"
+            >
+                <label class="block text-gray-700 mb-2">
+                    Pickup Location
+                    <span class="text-gray-400 text-sm font-normal">(optional — click map to set)</span>
+                </label>
+
+                <div class="border border-gray-200 rounded-lg overflow-hidden">
+                    <div id="add-donation-map" style="height: 260px; z-index: 1;"></div>
+
+                    <div class="px-4 py-2.5 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-3">
+                        <p class="text-sm text-gray-500">
+                            <template x-if="lat && lng">
+                                <span>
+                                    📍 <span x-text="lat.toFixed(6)"></span>, <span x-text="lng.toFixed(6)"></span>
+                                </span>
+                            </template>
+                            <template x-if="!lat || !lng">
+                                <span>No location selected</span>
+                            </template>
+                        </p>
+                        <button
+                            type="button"
+                            x-show="lat && lng"
+                            @click="
+                                lat = null; lng = null;
+                                document.getElementById('add-lat').value = '';
+                                document.getElementById('add-lng').value = '';
+                                if (marker) { map.removeLayer(marker); marker = null; }
+                            "
+                            class="text-xs text-red-500 hover:text-red-700"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                </div>
+
+                <input type="hidden" name="pickup_latitude"  id="add-lat">
+                <input type="hidden" name="pickup_longitude" id="add-lng">
+            </div>
+
             <div class="flex gap-3 pt-4">
                 <button
                     type="submit"

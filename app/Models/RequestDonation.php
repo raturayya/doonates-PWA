@@ -15,7 +15,19 @@ class RequestDonation extends Model
         'message',
         'status',
         'user_id',
+        'pickup_latitude',
+        'pickup_longitude',
     ];
+
+    public function isFinished(): bool
+    {
+        return $this->status === 'Finished';
+    }
+
+    public function hasLocation(): bool
+    {
+        return !is_null($this->pickup_latitude) && !is_null($this->pickup_longitude);
+    }
 
     public function donation()
     {

@@ -19,6 +19,8 @@ class Donation extends Model
         'description',
         'status',
         'organization_name',
+        'pickup_latitude',
+        'pickup_longitude',
     ];
 
     public function requests()
@@ -34,6 +36,11 @@ class Donation extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+        public function hasLocation(): bool
+    {
+        return !is_null($this->pickup_latitude) && !is_null($this->pickup_longitude);
     }
 
     // Helper: get original stock (fallback to quantity)

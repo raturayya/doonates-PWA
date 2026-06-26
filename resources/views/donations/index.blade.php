@@ -15,7 +15,7 @@
             <p class="text-gray-600">Track and manage your food donations</p>
         </div>
         <button
-            @click="showModal = true"
+            @click="showModal = true; $nextTick(() => $dispatch('donation-modal-opened'))"
             class="inline-flex items-center gap-2 px-6 py-3 bg-[#2E7D32] text-white rounded-lg hover:bg-[#25662a] transition-colors"
         >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,7 +110,10 @@
                     organization_name: '{{ $donation->organization_name }}',
                     expiry_date: '{{ $donation->expiry_date }}',
                     pickup_time: '{{ $donation->pickup_time }}',
-                    description: `{{ $donation->description }}`
+                    description: `{{ $donation->description }}`,
+                    // Add these two lines inside the selectedDonation = { ... } object:
+                    pickup_latitude: {{ $donation->pickup_latitude ?? 'null' }},
+                    pickup_longitude: {{ $donation->pickup_longitude ?? 'null' }}
                 };
                     showDetailModal = true;
                     open = false;
@@ -408,6 +411,76 @@
                 ></textarea>
             </div>
 
+            {{-- Pickup Location (Edit) --}}
+<div
+    x-data="{
+        lat: selectedDonation.pickup_latitude ? parseFloat(selectedDonation.pickup_latitude) : null,
+        lng: selectedDonation.pickup_longitude ? parseFloat(selectedDonation.pickup_longitude) : null,
+        map: null,
+        marker: null,
+        initMap() {
+            if (this.map) return;
+            const center = (this.lat && this.lng) ? [this.lat, this.lng] : [-6.2088, 106.8456];
+            this.map = L.map('edit-donation-map').setView(center, this.lat ? 15 : 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(this.map);
+            if (this.lat && this.lng) {
+                this.marker = L.marker([this.lat, this.lng]).addTo(this.map);
+            }
+            this.map.on('click', (e) => {
+                this.lat = e.latlng.lat;
+                this.lng = e.latlng.lng;
+                if (this.marker) this.map.removeLayer(this.marker);
+                this.marker = L.marker([this.lat, this.lng]).addTo(this.map);
+                document.getElementById('edit-lat').value = this.lat;
+                document.getElementById('edit-lng').value = this.lng;
+            });
+            setTimeout(() => this.map.invalidateSize(), 150);
+        }
+    }"
+    x-init="$watch('showEditModal', v => { if (v) $nextTick(() => initMap()) })"
+>
+    <label class="block text-gray-700 mb-2">
+        Pickup Location
+        <span class="text-gray-400 text-sm font-normal">(click map to change)</span>
+    </label>
+
+    <div class="border border-gray-200 rounded-lg overflow-hidden">
+        <div id="edit-donation-map" style="height: 240px; z-index: 1;"></div>
+        <div class="px-4 py-2.5 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-3">
+            <p class="text-sm text-gray-500">
+                <template x-if="lat && lng">
+                    <span>📍 <span x-text="lat.toFixed(6)"></span>, <span x-text="lng.toFixed(6)"></span></span>
+                </template>
+                <template x-if="!lat || !lng">
+                    <span>No location selected</span>
+                </template>
+            </p>
+            <button
+                type="button"
+                x-show="lat && lng"
+                @click="
+                    lat = null; lng = null;
+                    document.getElementById('edit-lat').value = '';
+                    document.getElementById('edit-lng').value = '';
+                    if (marker) { map.removeLayer(marker); marker = null; }
+                "
+                class="text-xs text-red-500 hover:text-red-700"
+            >
+                Clear
+            </button>
+        </div>
+    </div>
+
+    <input type="hidden" name="pickup_latitude"  id="edit-lat"
+           value="{{ isset($donation) ? $donation->pickup_latitude : '' }}"
+           :value="lat ?? ''">
+    <input type="hidden" name="pickup_longitude" id="edit-lng"
+           value="{{ isset($donation) ? $donation->pickup_longitude : '' }}"
+           :value="lng ?? ''">
+</div>
+
             <div class="flex gap-3">
 
                 <button
@@ -435,4 +508,13 @@
     <!-- Add Donation Modal -->
     @include('donations.modals.add-donation')
 </div>
+
+@push('styles')
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+@endpush
+
+@push('scripts')
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+@endpush
+
 @endsection

@@ -36,7 +36,7 @@
                             <div class="flex-1">
                                 <div class="flex items-center gap-3 mb-2">
                                     
-                                    {{-- 🔥 FIX: ambil dari relasi donation --}}
+                                    {{-- ðŸ”¥ FIX: ambil dari relasi donation --}}
                                     <h3 class="text-gray-900">
                                         {{ $req->donation->food_name ?? '-' }}
                                     </h3>
@@ -69,7 +69,7 @@
                         </div>
                     </div>
 
-                    {{-- 🔥 ACTION BUTTON --}}
+                    {{-- ðŸ”¥ ACTION BUTTON --}}
                     @if($req->status === 'Pending')
                     <div class="flex gap-2 ml-4">
                         
@@ -80,7 +80,7 @@
                             View
                         </button>
 
-                        {{-- ✅ FIX PATCH METHOD --}}
+                        {{-- âœ… FIX PATCH METHOD --}}
                         <form method="POST" action="{{ route('requests.approve', $req->id) }}">
                             @csrf
                             @method('PATCH')

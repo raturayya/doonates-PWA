@@ -11,7 +11,10 @@ class DonationController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Donation::with('unit');
+        $orgName = Auth::user()->organization_name ?? Auth::user()->name;
+
+        $query = Donation::with('unit')
+            ->where('organization_name', $orgName);
 
         if ($request->search) {
             $query->where('food_name', 'like', '%' . $request->search . '%');
@@ -30,13 +33,15 @@ class DonationController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'food_name'   => 'required|string',
-            'category'    => 'required|string',
-            'quantity'    => 'required|integer|min:1',
-            'unit_id'     => 'required|exists:units,id',
-            'expiry_date' => 'required|date',
-            'pickup_time' => 'required|date',
-            'description' => 'required|string',
+            'food_name'        => 'required|string',
+            'category'         => 'required|string',
+            'quantity'         => 'required|integer|min:1',
+            'unit_id'          => 'required|exists:units,id',
+            'expiry_date'      => 'required|date',
+            'pickup_time'      => 'required|date',
+            'description'      => 'required|string',
+            'pickup_latitude'  => 'nullable|numeric|between:-90,90',
+            'pickup_longitude' => 'nullable|numeric|between:-180,180',
         ]);
 
         $qty = $request->quantity;
@@ -54,6 +59,8 @@ class DonationController extends Controller
             'description'       => $request->description,
             'status'            => 'Available',
             'organization_name' => Auth::user()->organization_name ?? Auth::user()->name,
+            'pickup_latitude'   => $request->pickup_latitude ?: null,
+            'pickup_longitude'  => $request->pickup_longitude ?: null,
         ]);
 
         return redirect()->route('donations.index')->with('success', 'Donation added!');
@@ -72,24 +79,27 @@ class DonationController extends Controller
     }
 
     public function update(Request $request, Donation $donation)
-    {
-        $request->validate([
-            'food_name'   => 'required|string',
-            'category'    => 'required|string',
-            'quantity'    => 'required|integer|min:1',
-            'unit_id'     => 'required|exists:units,id',
-            'expiry_date' => 'required|date',
-            'pickup_time' => 'required|date',
-            'description' => 'required|string',
-        ]);
+{
+    $request->validate([
+        'food_name'        => 'required|string',
+        'category'         => 'required|string',
+        'quantity'         => 'required|integer|min:1',
+        'unit_id'          => 'required|exists:units,id',
+        'expiry_date'      => 'required|date',
+        'pickup_time'      => 'required|date',
+        'description'      => 'required|string',
+        'pickup_latitude'  => 'nullable|numeric|between:-90,90',
+        'pickup_longitude' => 'nullable|numeric|between:-180,180',
+    ]);
 
-        $donation->update($request->only([
-            'food_name', 'category', 'quantity', 'unit_id',
-            'expiry_date', 'pickup_time', 'description',
-        ]));
+    $donation->update($request->only([
+        'food_name', 'category', 'quantity', 'unit_id',
+        'expiry_date', 'pickup_time', 'description',
+        'pickup_latitude', 'pickup_longitude',
+    ]));
 
-        return redirect()->route('donations.index')->with('success', 'Donation updated!');
-    }
+    return redirect()->route('donations.index')->with('success', 'Donation updated!');
+}
 
     public function destroy(Donation $donation)
     {

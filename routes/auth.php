@@ -38,8 +38,11 @@ Route::middleware('guest')->group(function () {
 });
 
 // ─── Halaman pending (tidak perlu login, tidak perlu approved) ────────────────
-Route::get('pending', fn () => view('auth.pending'))
+Route::get('pending', [App\Http\Controllers\Auth\PendingController::class, 'show'])
     ->name('pending');
+Route::get('pending/check', [App\Http\Controllers\Auth\PendingController::class, 'check'])
+    ->middleware('auth')
+    ->name('pending.check');
 
 // ─── Authenticated routes ─────────────────────────────────────────────────────
 Route::middleware('auth')->group(function () {

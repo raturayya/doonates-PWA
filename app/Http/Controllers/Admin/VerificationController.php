@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Notifications\AccountApproved;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -14,9 +15,17 @@ class VerificationController extends Controller
      */
     public function index(): View
     {
-        $pending  = User::where('status', 'pending')->where('role', 'organization')->latest()->get();
-        $approved = User::where('status', 'approved')->where('role', 'organization')->latest()->get();
-        $rejected = User::where('status', 'rejected')->where('role', 'organization')->latest()->get();
+        $pending  = User::where('status', 'pending')
+            ->whereIn('role', ['organization', 'user'])
+            ->latest()->get();
+
+        $approved = User::where('status', 'approved')
+            ->whereIn('role', ['organization', 'user'])
+            ->latest()->get();
+
+        $rejected = User::where('status', 'rejected')
+            ->whereIn('role', ['organization', 'user'])
+            ->latest()->get();
 
         return view('admin.verification.index', compact('pending', 'approved', 'rejected'));
     }
@@ -28,8 +37,7 @@ class VerificationController extends Controller
     {
         $user->update(['status' => User::STATUS_APPROVED]);
 
-        // Opsional: kirim notifikasi email ke organisasi
-        // $user->notify(new OrganizationApproved());
+        $user->notify(new AccountApproved());
 
         return back()->with('success', "Organisasi \"{$user->organization_name}\" berhasil diapprove.");
     }

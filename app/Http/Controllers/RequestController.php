@@ -5,15 +5,21 @@ namespace App\Http\Controllers;
 use App\Models\RequestDonation;
 use App\Models\Donation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class RequestController extends Controller
 {
     public function index()
     {
-        $requests = RequestDonation::with([
-            'donation.unit',
-            'user'
-        ])->latest()->get();
+        $orgName = Auth::user()->organization_name ?? Auth::user()->name;
+
+        $requests = RequestDonation::with(['donation.unit', 'user'])
+            ->whereHas('donation', function ($q) use ($orgName) {
+                $q->where('organization_name', $orgName);
+            })
+            ->latest()
+            ->get();
+
         return view('requests.index', compact('requests'));
     }
 
@@ -54,5 +60,35 @@ class RequestController extends Controller
     {
         $requestDonation->update(['status' => 'Rejected']);
         return back()->with('success', 'Request rejected');
+    }
+
+    public function setLocation(Request $request, RequestDonation $requestDonation)
+    {
+        $request->validate([
+            'pickup_latitude'  => 'required|numeric|between:-90,90',
+            'pickup_longitude' => 'required|numeric|between:-180,180',
+        ]);
+
+        if ($requestDonation->status !== 'Approved') {
+            return back()->with('error', 'Can only set location for approved requests');
+        }
+
+        $requestDonation->update([
+            'pickup_latitude'  => $request->pickup_latitude,
+            'pickup_longitude' => $request->pickup_longitude,
+        ]);
+
+        return back()->with('success', 'Pickup location saved');
+    }
+
+    public function markPickedUp(RequestDonation $requestDonation)
+    {
+        if ($requestDonation->status !== 'Approved') {
+            return back()->with('error', 'Request is not in Approved state');
+        }
+
+        $requestDonation->update(['status' => 'Finished']);
+
+        return back()->with('success', 'Marked as picked up');
     }
 }

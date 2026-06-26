@@ -39,6 +39,8 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     Route::get('/requests', [RequestController::class, 'index'])->name('requests.index');
     Route::patch('/requests/{requestDonation}/approve', [RequestController::class, 'approve'])->name('requests.approve');
     Route::patch('/requests/{requestDonation}/reject', [RequestController::class, 'reject'])->name('requests.reject');
+    Route::patch('/requests/{requestDonation}/set-location', [RequestController::class, 'setLocation'])->name('requests.setLocation');
+    Route::patch('/requests/{requestDonation}/picked-up', [RequestController::class, 'markPickedUp'])->name('requests.pickedUp');
 
     Route::get('/organizations', [OrganizationController::class, 'index'])->name('organizations.index');
     Route::get('/organizations/{organization}', [OrganizationController::class, 'show'])->name('organizations.show');
@@ -84,6 +86,8 @@ Route::middleware(['auth', 'verified', 'approved'])
 
         // My Requests
         Route::get('/requests', [UserRequestController::class, 'index'])->name('requests.index');
+        Route::get('/requests/{requestDonation}', [UserRequestController::class, 'show'])->name('requests.show');
+        Route::patch('/requests/{requestDonation}/picked-up', [UserRequestController::class, 'markPickedUp'])->name('requests.pickedUp');
 
         // Profile
         Route::get('/profile', [UserProfileController::class, 'index'])->name('profile.index');
