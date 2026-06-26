@@ -255,6 +255,71 @@
                 <p class="font-medium" x-text="selectedDonation?.description"></p>
             </div>
 
+            <!-- Pickup Location Map (read-only) -->
+            <div
+                class="md:col-span-2"
+                x-data="{
+                    map: null,
+                    marker: null,
+                    renderMap() {
+                        const lat = selectedDonation?.pickup_latitude ? parseFloat(selectedDonation.pickup_latitude) : null;
+                        const lng = selectedDonation?.pickup_longitude ? parseFloat(selectedDonation.pickup_longitude) : null;
+
+                        // Buang map lama (kalau ada) karena modal ini dipakai ulang untuk setiap donasi
+                        if (this.map) {
+                            this.map.remove();
+                            this.map = null;
+                            this.marker = null;
+                        }
+
+                        if (!lat || !lng) return;
+
+                        this.$nextTick(() => {
+                            this.map = L.map('detail-donation-map', {
+                                zoomControl: true,
+                                dragging: true,
+                                scrollWheelZoom: false,
+                            }).setView([lat, lng], 15);
+
+                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                attribution: '© OpenStreetMap contributors'
+                            }).addTo(this.map);
+
+                            this.marker = L.marker([lat, lng]).addTo(this.map);
+
+                            setTimeout(() => this.map.invalidateSize(), 150);
+                        });
+                    }
+                }"
+                x-init="$watch('showDetailModal', v => { if (v) renderMap(); })"
+            >
+                <p class="text-sm text-gray-500 mb-2">Pickup Location</p>
+
+                <template x-if="selectedDonation?.pickup_latitude && selectedDonation?.pickup_longitude">
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                        <div id="detail-donation-map" style="height: 220px; z-index: 1;"></div>
+                        <div class="px-4 py-2 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-3">
+                            <p class="text-sm text-gray-500">
+                                📍
+                                <span x-text="parseFloat(selectedDonation.pickup_latitude).toFixed(6)"></span>,
+                                <span x-text="parseFloat(selectedDonation.pickup_longitude).toFixed(6)"></span>
+                            </p>
+                            <a
+                                :href="'https://www.google.com/maps?q=' + selectedDonation.pickup_latitude + ',' + selectedDonation.pickup_longitude"
+                                target="_blank"
+                                class="text-xs text-[#2E7D32] hover:underline"
+                            >
+                                Open in Google Maps ↗
+                            </a>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="!selectedDonation?.pickup_latitude || !selectedDonation?.pickup_longitude">
+                    <p class="text-sm text-gray-400 italic">No pickup location set for this donation.</p>
+                </template>
+            </div>
+
         </div>
 
     </div>

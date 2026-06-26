@@ -16,8 +16,6 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     @stack('styles')
-
-    @laravelPWA
 </head>
 
 <body class="font-sans antialiased bg-gray-50">
@@ -68,17 +66,5 @@
     </div>
 
     @stack('scripts')
-
-    {{-- Push Notification: request permission on first dashboard visit --}}
-    @auth
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const vapidKey = @json(config('webpush.vapid.public_key'));
-            if (vapidKey) {
-                DoonautesPush.requestPermissionAndSubscribe(vapidKey);
-            }
-        });
-    </script>
-    @endauth
 </body>
 </html>
