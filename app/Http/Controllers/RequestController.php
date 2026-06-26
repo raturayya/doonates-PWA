@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\RequestDonation;
 use App\Models\Donation;
+use App\Services\PushNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -52,6 +53,17 @@ class RequestController extends Controller
             'total_taken'        => $newTotalTaken,
             'status'             => $newRemaining <= 0 ? 'Completed' : 'Available',
         ]);
+
+        // Push notification to the user who made the request
+        if ($requestDonation->user) {
+            $url = route('user.requests.show', $requestDonation->id);
+            app(PushNotificationService::class)->sendToUser(
+                $requestDonation->user,
+                '✅ Request Approved!',
+                "Your request for \"{$donation->food_name}\" has been approved. Tap to view details.",
+                $url
+            );
+        }
 
         return back()->with('success', 'Request approved successfully');
     }

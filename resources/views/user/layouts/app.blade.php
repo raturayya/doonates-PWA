@@ -25,6 +25,7 @@
         #main-sidebar { display: none !important; }
     </style>
     {{-- @laravelPWA --}}
+    @laravelPWA
 </head>
 
 <body class="font-sans antialiased bg-gray-50">
@@ -131,5 +132,17 @@
             }
         });
     </script>
+
+    {{-- Push Notification: request permission on dashboard --}}
+    @auth
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const vapidKey = @json(config('webpush.vapid.public_key'));
+            if (vapidKey) {
+                DoonautesPush.requestPermissionAndSubscribe(vapidKey);
+            }
+        });
+    </script>
+    @endauth
 </body>
 </html>
